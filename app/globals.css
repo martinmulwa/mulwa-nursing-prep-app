@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --color-ink: #0f1117;
+  --color-paper: #faf8f3;
+  --color-cream: #f2ede3;
+  --color-accent: #c8392b;
+  --color-muted: #6b6860;
+  --color-border: #e2ddd4;
+  --color-gold: #c9910a;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+}
