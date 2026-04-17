@@ -1,19 +1,15 @@
-import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import { Space_Grotesk, Space_Mono } from 'next/font/google';
 import './globals.css';
 
-const sans = Plus_Jakarta_Sans({
+const sans = Space_Grotesk({
   subsets: ['latin'],
+  weight: ['300', '500', '700'],
   variable: '--font-sans',
 });
 
-const display = Plus_Jakarta_Sans({
+const mono = Space_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-display',
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
+  weight: ['400', '700'],
   variable: '--font-mono',
 });
 
@@ -28,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
-      <body className="antialiased bg-cream text-ink font-sans tracking-tight" suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+      <body className="antialiased bg-paper text-ink font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>
