@@ -3,144 +3,237 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Heart, 
-  Droplets, 
-  Baby, 
-  Scissors, 
-  Hospital, 
-  Activity, 
-  Zap, 
-  CheckCircle2, 
-  XCircle, 
-  BookOpen, 
-  RotateCcw,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  BrainCircuit,
-  AlertCircle,
-  Upload,
-  Edit2,
-  Trash2,
-  Library
+  Heart, Droplets, Baby, Scissors, Hospital, Activity, Zap, 
+  CheckCircle2, XCircle, BookOpen, RotateCcw, Search, ChevronDown, 
+  ChevronUp, BrainCircuit, AlertCircle, Upload, Edit2, Trash2, 
+  Library, Sun, Moon, LogOut, User as UserIcon, Eye, EyeOff
 } from 'lucide-react';
-import { questions, Question } from '@/lib/questions';
 import { cn } from '@/lib/utils';
+import { 
+  Paper, getPapersAction, savePaperAction, renamePaperAction, 
+  toggleVisibilityAction, deletePaperAction 
+} from '@/app/actions';
 
-const TOPICS = [
-  { id: 'all', name: 'All Topics', icon: BookOpen, color: 'bg-ink text-paper' },
-  { id: 'Cardiovascular', name: 'Cardio', icon: Heart, color: 'bg-red-100 text-red-800' },
-  { id: 'Hematology', name: 'Haem', icon: Droplets, color: 'bg-rose-100 text-rose-800' },
-  { id: 'Pediatric', name: 'Paeds', icon: Baby, color: 'bg-blue-100 text-blue-800' },
-  { id: 'Surgical', name: 'Surgical', icon: Scissors, color: 'bg-amber-100 text-amber-800' },
-  { id: 'Medical-Surgical', name: 'Med-Surg', icon: Hospital, color: 'bg-emerald-100 text-emerald-800' },
-  { id: 'Renal', name: 'Renal', icon: Activity, color: 'bg-indigo-100 text-indigo-800' },
-  { id: 'Endocrine', name: 'Endocrine', icon: Zap, color: 'bg-yellow-100 text-yellow-800' },
-  { id: 'Pharmacology', name: 'Pharma', icon: AlertCircle, color: 'bg-purple-100 text-purple-800' },
-];
+type Role = 'admin' | 'guest' | null;
 
-interface Paper {
-  id: string;
-  title: string;
-  questions: Question[];
-}
-
-const DEFAULT_PAPER: Paper = {
-  id: 'default-part-1',
-  title: 'Part 1 Promotional Exam',
-  questions: questions
-};
-
-export default function StudyGuide() {
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const [papers, setPapers] = useState<Paper[]>([]);
-  const [activePaperId, setActivePaperId] = useState<string>('default-part-1');
-  const [allProgress, setAllProgress] = useState<Record<string, Record<number, number>>>({});
-  const [allExpanded, setAllExpanded] = useState<Record<string, Record<number, boolean>>>({});
-  
+export default function App() {
+  // Try to load role from session
+  const [role, setRole] = useState<Role>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [showResetDialog, setShowResetDialog] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showPaperManager, setShowPaperManager] = useState(false);
-  
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadMessage, setUploadMessage] = useState('');
 
-  // Load progress and papers from localStorage after mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-      
-      // Load papers
-      const savedPapers = localStorage.getItem('nursing-prep-papers');
-      if (savedPapers) {
-        try {
-          setPapers(JSON.parse(savedPapers));
-        } catch (e) {
-          console.error('Failed to load papers', e);
-          setPapers([DEFAULT_PAPER]);
-        }
-      } else {
-        setPapers([DEFAULT_PAPER]);
-      }
-
-      // Load active paper id
-      const savedActiveId = localStorage.getItem('nursing-prep-active-paper');
-      if (savedActiveId) {
-        setActivePaperId(savedActiveId);
-      }
-
-      // Load progress
-      const savedProgress = localStorage.getItem('nursing-prep-all-progress');
-      if (savedProgress) {
-        try {
-          setAllProgress(JSON.parse(savedProgress));
-        } catch (e) {
-          console.error('Failed to load progress', e);
-        }
-      } else {
-        // Migrate old progress if exists
-        const oldProgress = localStorage.getItem('nursing-prep-progress');
-        if (oldProgress) {
-          try {
-            setAllProgress({ 'default-part-1': JSON.parse(oldProgress) });
-          } catch (e) {}
-        }
-      }
-    }, 0);
-    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    const savedRole = sessionStorage.getItem('mulwa-role') as Role;
+    if (savedRole) setRole(savedRole);
   }, []);
 
-  // Save progress and papers
+  // Apply dark mode
   useEffect(() => {
     if (mounted) {
-      localStorage.setItem('nursing-prep-papers', JSON.stringify(papers));
-      localStorage.setItem('nursing-prep-active-paper', activePaperId);
-      localStorage.setItem('nursing-prep-all-progress', JSON.stringify(allProgress));
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
-  }, [papers, activePaperId, allProgress, mounted]);
+  }, [isDarkMode, mounted]);
 
-  const activePaper = useMemo(() => papers.find(p => p.id === activePaperId) || papers[0] || DEFAULT_PAPER, [papers, activePaperId]);
-  const currentQuestions = activePaper.questions;
+  const handleLogin = (newRole: Role) => {
+    setRole(newRole);
+    if (newRole) {
+      sessionStorage.setItem('mulwa-role', newRole);
+    } else {
+      sessionStorage.removeItem('mulwa-role');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-cream text-ink font-sans transition-colors duration-200">
+      <Header 
+        role={role} 
+        onLogout={() => handleLogin(null)}
+        isDarkMode={isDarkMode}
+        toggleDark={() => setIsDarkMode(!isDarkMode)}
+      />
+      {!role ? (
+        <LoginScreen onLogin={handleLogin} />
+      ) : (
+        <StudyApp role={role} />
+      )}
+    </div>
+  );
+}
+
+function Header({ role, onLogout, isDarkMode, toggleDark }: any) {
+  return (
+    <header className="sticky top-0 z-50 bg-paper border-b border-border shadow-sm transition-colors duration-200 h-16 flex items-center">
+      <div className="max-w-6xl mx-auto px-4 w-full flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-accent p-1.5 rounded-lg">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="font-display text-xl font-bold tracking-tight text-ink">
+            Mulwa Prep
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={toggleDark}
+            className="p-2 rounded-full text-muted hover:bg-cream hover:text-ink transition-colors"
+            title="Toggle theme"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+
+          {role && (
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-muted hidden sm:inline-block">
+                {role === 'admin' ? 'Admin' : 'Guest'}
+              </span>
+              <button 
+                onClick={onLogout}
+                className="flex items-center gap-2 px-3 py-1.5 font-medium text-sm text-muted hover:text-ink hover:bg-cream rounded-md transition-colors border border-transparent hover:border-border"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Log out</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function LoginScreen({ onLogin }: { onLogin: (r: Role) => void }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === 'admin' && password === 'mulwa2026') {
+      onLogin('admin');
+    } else {
+      setError('Invalid admin credentials.');
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md bg-paper border border-border shadow-lg rounded-2xl overflow-hidden"
+      >
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <div className="bg-accent/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserIcon className="w-8 h-8 text-accent" />
+            </div>
+            <h2 className="text-2xl font-bold font-display text-ink">Welcome to Mulwa Prep</h2>
+            <p className="text-muted mt-2">Log in to track your progress and access papers.</p>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="space-y-4 mb-4">
+            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+            <div>
+              <label className="text-xs font-bold text-muted uppercase tracking-wider">Username</label>
+              <input 
+                type="text" 
+                className="w-full mt-1 bg-cream border border-border rounded-lg px-4 py-2.5 text-ink focus:outline-none focus:border-accent transition-colors"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="Enter admin username"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted uppercase tracking-wider">Password</label>
+              <input 
+                type="password" 
+                className="w-full mt-1 bg-cream border border-border rounded-lg px-4 py-2.5 text-ink focus:outline-none focus:border-accent transition-colors"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter password"
+              />
+            </div>
+            <button 
+              type="submit"
+              className="w-full py-3 bg-accent text-white font-bold rounded-lg hover:bg-accent/90 transition-colors shadow-sm"
+            >
+              Log in as Admin
+            </button>
+          </form>
+
+          <div className="relative flex items-center py-4">
+            <div className="flex-grow border-t border-border"></div>
+            <span className="flex-shrink-0 mx-4 text-muted text-sm font-medium">OR</span>
+            <div className="flex-grow border-t border-border"></div>
+          </div>
+
+          <button 
+            onClick={() => onLogin('guest')}
+            className="w-full py-3 bg-transparent border-2 border-border text-ink font-bold rounded-lg hover:border-ink transition-colors shadow-sm"
+          >
+            Log in as Guest
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function StudyApp({ role }: { role: string }) {
+  const [papers, setPapers] = useState<Paper[]>([]);
+  const [activePaperId, setActivePaperId] = useState<string>('');
+  const [allProgress, setAllProgress] = useState<Record<string, Record<number, number>>>({});
+  const [showExplanation, setShowExplanation] = useState<Record<number, boolean>>({});
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showPaperManager, setShowPaperManager] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  // Load from server
+  useEffect(() => {
+    getPapersAction().then(data => {
+      setPapers(data);
+      if (data.length > 0) {
+        setActivePaperId(data[0].id);
+      }
+    });
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  const visiblePapers = useMemo(() => {
+    if (role === 'admin') return papers;
+    return papers.filter(p => !p.isHidden);
+  }, [papers, role]);
+
+  const activePaper = useMemo(() => {
+    return visiblePapers.find(p => p.id === activePaperId) || visiblePapers[0];
+  }, [visiblePapers, activePaperId]);
+
+  const currentQuestions = useMemo(() => activePaper ? activePaper.questions : [], [activePaper]);
   const answered = useMemo(() => allProgress[activePaperId] || {}, [allProgress, activePaperId]);
-  const expanded = useMemo(() => allExpanded[activePaperId] || {}, [allExpanded, activePaperId]);
 
   const filteredQuestions = useMemo(() => {
     return currentQuestions.filter(q => {
-      const matchesFilter = filter === 'all' || q.topic === filter;
       const matchesSearch = q.text.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            q.topic.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
+                            q.topic?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
     });
-  }, [filter, searchQuery, currentQuestions]);
+  }, [searchQuery, currentQuestions]);
 
   const stats = useMemo(() => {
     const total = currentQuestions.length;
-    if (!mounted) return { total, answeredCount: 0, correctCount: 0, score: 0 };
-    
     const answeredCount = Object.keys(answered).length;
     const correctCount = Object.entries(answered).filter(([num, idx]) => {
       const q = currentQuestions.find(q => q.num === parseInt(num));
@@ -148,34 +241,18 @@ export default function StudyGuide() {
     }).length;
     const score = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
     return { total, answeredCount, correctCount, score };
-  }, [answered, mounted, currentQuestions]);
+  }, [answered, currentQuestions]);
 
   const handleSelect = (qNum: number, idx: number) => {
     if (answered[qNum] !== undefined) return;
     setAllProgress(prev => ({
       ...prev,
-      [activePaperId]: {
-        ...(prev[activePaperId] || {}),
-        [qNum]: idx
-      }
-    }));
-    setAllExpanded(prev => ({
-      ...prev,
-      [activePaperId]: {
-        ...(prev[activePaperId] || {}),
-        [qNum]: true
-      }
+      [activePaperId]: { ...(prev[activePaperId] || {}), [qNum]: idx }
     }));
   };
 
-  const toggleExpand = (qNum: number) => {
-    setAllExpanded(prev => ({
-      ...prev,
-      [activePaperId]: {
-        ...(prev[activePaperId] || {}),
-        [qNum]: !expanded[qNum]
-      }
-    }));
+  const toggleExplanation = (qNum: number) => {
+    setShowExplanation(prev => ({ ...prev, [qNum]: !prev[qNum] }));
   };
 
   const confirmReset = () => {
@@ -184,189 +261,133 @@ export default function StudyGuide() {
       delete next[activePaperId];
       return next;
     });
-    setAllExpanded(prev => {
-      const next = { ...prev };
-      delete next[activePaperId];
-      return next;
-    });
+    setShowExplanation({});
     setShowResetDialog(false);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Admin Paper Actions
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadStatus('validating');
-    setUploadProgress(10);
-    setUploadMessage('Reading file...');
-
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setTimeout(() => {
-        try {
-          setUploadProgress(40);
-          setUploadMessage('Parsing JSON...');
-          const content = e.target?.result as string;
-          const parsed = JSON.parse(content);
-          
-          setTimeout(() => {
-            setUploadProgress(70);
-            setUploadMessage('Validating questions...');
-            
-            // Comprehensive validation
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const isValid = parsed.every(q => 
-                q.text && typeof q.text === 'string' &&
-                Array.isArray(q.options) && q.options.length > 0 &&
-                typeof q.correct === 'number' && q.correct >= 0 && q.correct < q.options.length
-              );
-
-              if (isValid) {
-                setUploadProgress(100);
-                setUploadMessage('Upload successful!');
-                setUploadStatus('success');
-                
-                setTimeout(() => {
-                  const newPaper = {
-                    id: Date.now().toString(),
-                    title: file.name.replace('.json', ''),
-                    questions: parsed
-                  };
-                  setPapers(prev => [...prev, newPaper]);
-                  setActivePaperId(newPaper.id);
-                  setUploadStatus('idle');
-                  setUploadProgress(0);
-                }, 1000);
-              } else {
-                setUploadStatus('error');
-                setUploadMessage('Invalid format: Questions must have text, options array, and a valid correct answer index.');
-                setTimeout(() => setUploadStatus('idle'), 4000);
-              }
-            } else {
-              setUploadStatus('error');
-              setUploadMessage('Invalid format: File must contain a non-empty array of questions.');
-              setTimeout(() => setUploadStatus('idle'), 4000);
-            }
-          }, 400);
-        } catch (error) {
-          setUploadStatus('error');
-          setUploadMessage('Error parsing JSON file. Ensure it is valid JSON.');
-          setTimeout(() => setUploadStatus('idle'), 4000);
+    reader.onload = async (e) => {
+      try {
+        const parsed = JSON.parse(e.target?.result as string);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text && parsed[0].options) {
+          const newPaper = {
+            id: Date.now().toString(),
+            title: file.name.replace('.json', ''),
+            questions: parsed,
+            isHidden: false
+          };
+          await savePaperAction(newPaper);
+          setPapers(await getPapersAction());
+          setActivePaperId(newPaper.id);
+        } else {
+          alert('Invalid format.');
         }
-      }, 400);
+      } catch (err) {
+        alert('Invalid JSON file.');
+      }
     };
     reader.readAsText(file);
     event.target.value = '';
   };
 
-  const renamePaper = (id: string) => {
-    const paperToRename = papers.find(p => p.id === id);
-    if (!paperToRename) return;
-    const newTitle = prompt('Enter new name for this paper:', paperToRename.title);
-    if (newTitle && newTitle.trim()) {
-      setPapers(prev => prev.map(p => p.id === id ? { ...p, title: newTitle.trim() } : p));
+  const renamePaper = async (id: string, oldTitle: string) => {
+    const title = prompt('Rename paper:', oldTitle);
+    if (title && title.trim()) {
+      await renamePaperAction(id, title.trim());
+      setPapers(await getPapersAction());
     }
   };
 
-  const deletePaper = (id: string) => {
-    if (id === 'default-part-1') {
-      alert('Cannot delete the default paper.');
-      return;
-    }
-    if (confirm('Are you sure you want to delete this paper?')) {
-      setPapers(prev => prev.filter(p => p.id !== id));
-      if (activePaperId === id) {
-        setActivePaperId('default-part-1');
-      }
-      
-      // cleanup progress
+  const toggleVisibility = async (id: string, currentStatus: boolean) => {
+    await toggleVisibilityAction(id, !currentStatus);
+    setPapers(await getPapersAction());
+  };
+
+  const deletePaper = async (id: string) => {
+    if (id === 'default-part-1') return alert('Cannot delete default paper.');
+    if (confirm('Delete this paper permanently?')) {
+      await deletePaperAction(id);
+      setPapers(await getPapersAction());
       setAllProgress(prev => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
+      if (activePaperId === id) setActivePaperId('');
     }
   };
 
+  if (!activePaper) return <div className="flex-1 p-8 text-center">No papers available.</div>;
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-ink text-paper border-b-4 border-accent shadow-lg">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="bg-accent p-2 rounded-lg shrink-0">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight truncate">
-                  Mulwa <span className="text-accent">Nursing</span> Prep
-                </h1>
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <button 
-                  onClick={() => setShowPaperManager(true)}
-                  className="flex items-center gap-1.5 bg-transparent text-xs font-mono uppercase tracking-widest text-muted hover:text-accent transition-colors focus:outline-none cursor-pointer max-w-[200px] sm:max-w-[300px]"
-                  title="Open Library"
-                >
-                  <Library className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{activePaper.title}</span>
-                  <ChevronDown className="w-3 h-3 shrink-0" />
-                </button>
-              </div>
-            </div>
+    <div className="flex-1 flex flex-col">
+      {/* Sub Header for Paper / Stats */}
+      <div className="bg-paper border-b border-border shadow-sm sticky top-16 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="font-bold text-lg text-ink line-clamp-1">{activePaper.title}</h2>
+            {role === 'admin' ? (
+              <button 
+                onClick={() => setShowPaperManager(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-cream hover:bg-border text-ink rounded-lg transition-colors border border-border"
+              >
+                <Library className="w-4 h-4" />
+                Library
+              </button>
+            ) : (
+              <select 
+                value={activePaperId}
+                onChange={(e) => setActivePaperId(e.target.value)}
+                className="bg-cream border border-border text-ink text-sm rounded-lg px-2 py-1 focus:outline-none"
+              >
+                {visiblePapers.map(p => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
+                ))}
+              </select>
+            )}
           </div>
 
-          <div className="flex items-center gap-6 w-full md:w-auto">
-            <div className="flex-1 md:flex-none">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-mono uppercase text-muted">Overall Progress</span>
-                <span className="text-[10px] font-mono text-accent">{stats.answeredCount} / {stats.total}</span>
-              </div>
-              <div className="h-2 w-full md:w-48 bg-white/10 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(stats.answeredCount / stats.total) * 100}%` }}
-                  className="h-full bg-accent"
-                />
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <div className="text-xs font-bold text-muted uppercase">Progress: {stats.answeredCount} / {stats.total}</div>
+              <div className="w-32 h-2 bg-cream rounded-full mt-1 overflow-hidden border border-border">
+                <div className="h-full bg-accent" style={{ width: `${(stats.answeredCount / stats.total) * 100}%` }} />
               </div>
             </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-display font-black text-accent leading-none">{stats.score}%</div>
-              <div className="text-[10px] font-mono uppercase text-muted mt-1">Accuracy</div>
+            <div className="bg-cream px-3 py-1.5 border border-border rounded-lg text-center">
+              <div className="text-lg font-bold text-accent leading-none">{stats.score}%</div>
             </div>
-
             <button 
               onClick={() => setShowSearch(!showSearch)}
-              className={cn(
-                "p-2 rounded-full transition-colors",
-                showSearch ? "bg-accent text-white" : "bg-white/10 text-white hover:bg-white/20"
-              )}
-              title="Toggle Search"
+              className={cn("p-2 rounded-lg border transition-colors", showSearch ? "bg-accent border-accent text-white" : "bg-cream border-border text-muted hover:text-ink")}
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4" />
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Collapsible Search */}
+      {/* Search Bar */}
       <AnimatePresence>
         {showSearch && (
           <motion.div 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-cream border-b border-border sticky top-[84px] md:top-[88px] z-40 shadow-sm overflow-hidden"
+            className="bg-cream border-b border-border overflow-hidden"
           >
-            <div className="max-w-5xl mx-auto px-4 py-3">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-accent transition-colors" />
+            <div className="max-w-6xl mx-auto px-4 py-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                 <input 
                   type="text"
-                  placeholder="Search questions, topics, or keywords..."
-                  className="w-full bg-paper border border-border rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  placeholder="Search questions or keywords..."
+                  className="w-full bg-paper border border-border rounded-xl py-3 pl-11 pr-4 text-sm font-medium focus:outline-none focus:border-accent transition-colors shadow-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
@@ -377,18 +398,17 @@ export default function StudyGuide() {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
+      {/* Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="font-display text-2xl font-bold text-ink">
-            {filter === 'all' ? 'All Questions' : `${filter} Questions`}
-            <span className="ml-3 text-sm font-mono text-muted font-normal">({filteredQuestions.length})</span>
-          </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-bold text-xl text-ink">
+            Questions <span className="text-muted text-sm ml-2">({filteredQuestions.length})</span>
+          </h3>
           <button 
             onClick={() => setShowResetDialog(true)}
-            className="flex items-center gap-2 text-xs font-mono text-muted hover:text-accent transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-muted hover:text-accent transition-colors"
           >
-            <RotateCcw className="w-3 h-3" />
+            <RotateCcw className="w-4 h-4" />
             Reset Progress
           </button>
         </div>
@@ -398,47 +418,34 @@ export default function StudyGuide() {
             const isAnswered = answered[q.num] !== undefined;
             const selectedIdx = answered[q.num];
             const isCorrect = selectedIdx === q.correct;
-            const isOpen = expanded[q.num];
-            const topicInfo = TOPICS.find(t => t.id === q.topic) || TOPICS[0];
-            const TopicIcon = topicInfo.icon;
+            const showingExpl = showExplanation[q.num];
 
             return (
-              <motion.div 
-                layout
-                key={q.num}
-                className={cn(
-                  "bg-white rounded-2xl border-2 transition-all overflow-hidden",
-                  isAnswered 
-                    ? isCorrect ? "border-emerald-500/50 shadow-sm" : "border-accent/50 shadow-sm"
-                    : "border-border hover:border-accent/30"
-                )}
-              >
-                {/* Question Header */}
-                <div className="bg-cream/50 px-6 py-4 flex items-center justify-between border-b border-border">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-border text-muted text-[10px] font-mono font-bold px-2 py-1 rounded">Q{q.num}</span>
-                    <span className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5", topicInfo.color)}>
-                      <TopicIcon className="w-3 h-3" />
-                      {q.topic}
-                    </span>
-                  </div>
-                  {isAnswered && (
-                    <div className={cn("flex items-center gap-1.5 text-xs font-bold", isCorrect ? "text-emerald-600" : "text-accent")}>
-                      {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                      {isCorrect ? "Correct" : "Incorrect"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Question Body */}
+              <div key={q.num} className="bg-paper border border-border rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-6">
-                  <p className="text-lg font-medium leading-relaxed text-ink mb-6">{q.text}</p>
+                  <div className="flex items-start justify-between mb-4">
+                    <span className="bg-cream text-muted border border-border font-mono text-xs font-bold px-2 py-1 rounded">
+                      {q.num}
+                    </span>
+                    {q.topic && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted px-2 py-1 bg-cream rounded-md border border-border">
+                        {q.topic}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-lg sm:text-xl font-medium text-ink mb-6 leading-loose">{q.text}</p>
                   
                   <div className="grid gap-3">
-                    {q.options.map((opt, idx) => {
+                    {q.options.map((opt: string, idx: number) => {
                       const isSelected = selectedIdx === idx;
                       const isRight = idx === q.correct;
-                      const letters = ['A', 'B', 'C', 'D'];
+                      
+                      let btnClass = "border-border bg-paper hover:border-ink text-ink";
+                      if (isAnswered) {
+                        if (isRight) btnClass = "border-green-500 bg-green-50/50 text-green-900";
+                        else if (isSelected && !isRight) btnClass = "border-red-500 bg-red-50/50 text-red-900";
+                        else btnClass = "border-border bg-cream text-muted opacity-60";
+                      }
 
                       return (
                         <button
@@ -446,265 +453,177 @@ export default function StudyGuide() {
                           disabled={isAnswered}
                           onClick={() => handleSelect(q.num, idx)}
                           className={cn(
-                            "group flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
-                            !isAnswered && "bg-paper border-border hover:border-ink hover:bg-cream",
-                            isAnswered && isRight && "bg-emerald-50 border-emerald-500 text-emerald-900",
-                            isAnswered && isSelected && !isRight && "bg-red-50 border-accent text-red-900",
-                            isAnswered && !isSelected && !isRight && "bg-paper border-border opacity-50"
+                            "flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
+                            btnClass
                           )}
                         >
-                          <span className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center font-mono text-sm font-bold transition-colors",
-                            !isAnswered && "bg-border text-muted group-hover:bg-ink group-hover:text-paper",
-                            isAnswered && isRight && "bg-emerald-500 text-white",
-                            isAnswered && isSelected && !isRight && "bg-accent text-white",
-                            isAnswered && !isSelected && !isRight && "bg-border text-muted"
+                          <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 shrink-0 transition-colors",
+                            isAnswered && isRight ? "bg-green-500 border-green-500 text-white" : "",
+                            isAnswered && isSelected && !isRight ? "bg-red-500 border-red-500 text-white" : "",
+                            !isAnswered ? "border-border text-muted bg-paper" : "",
+                            isAnswered && !isSelected && !isRight ? "border-border text-muted bg-cream" : ""
                           )}>
-                            {letters[idx]}
-                          </span>
-                          <span className="flex-1 font-medium">{opt}</span>
-                          {isAnswered && isRight && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                          {isAnswered && isSelected && !isRight && <XCircle className="w-5 h-5 text-accent" />}
+                            {['A','B','C','D'][idx]}
+                          </div>
+                          <span className="flex-1 font-medium text-sm sm:text-base leading-snug">{opt}</span>
+                          {isAnswered && isRight && <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />}
+                          {isAnswered && isSelected && !isRight && <XCircle className="w-5 h-5 text-red-500 shrink-0" />}
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Explanation Toggle */}
                 {isAnswered && (
-                  <button 
-                    onClick={() => toggleExpand(q.num)}
-                    className="w-full px-6 py-3 bg-paper border-t border-border flex items-center justify-between text-xs font-mono text-muted hover:text-ink transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4" />
-                      {isOpen ? "Hide Explanation" : "Show Explanation"}
-                    </span>
-                    {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                )}
-
-                {/* Explanation Content */}
-                <AnimatePresence>
-                  {isAnswered && isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-cream/30"
-                    >
-                      <div className="p-6 border-t border-border space-y-6">
-                        {/* Correct Rationale */}
-                        <div>
-                          <h4 className="text-[10px] font-mono uppercase text-muted mb-2 tracking-widest flex items-center gap-2">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                            Correct Rationale
+                  <div className="bg-cream border-t border-border px-6 py-4">
+                    {!showingExpl ? (
+                      <button 
+                        onClick={() => toggleExplanation(q.num)}
+                        className="w-full py-3 border-2 border-border border-dashed rounded-xl text-sm font-bold text-muted hover:border-accent hover:text-accent transition-colors"
+                      >
+                        Show Explanation
+                      </button>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-accent" /> Explanation
                           </h4>
-                          <p className="text-sm leading-relaxed text-ink/80">{q.explanation}</p>
+                          <button onClick={() => toggleExplanation(q.num)} className="text-muted hover:text-ink">
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="bg-green-50/50 border border-green-200 rounded-xl p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <span className="font-bold text-green-800 text-sm">Correct Answer</span>
+                          </div>
+                          <p className="text-green-900 text-base leading-loose">{q.explanation}</p>
                         </div>
 
-                        {/* Why Others are Wrong */}
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {Object.entries(q.wrongReasons).map(([idx, reason]) => (
-                            <div key={idx} className="bg-white/50 p-3 rounded-lg border border-border/50">
-                              <h5 className="text-[10px] font-mono font-bold text-accent mb-1">
-                                Option {['A', 'B', 'C', 'D'][parseInt(idx)]}
-                              </h5>
-                              <p className="text-xs text-muted leading-relaxed">{reason}</p>
+                        {q.wrongReasons && Object.keys(q.wrongReasons).length > 0 && (
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            {Object.entries(q.wrongReasons).map(([idx, reason]) => (
+                               <div key={idx} className="bg-paper border border-border rounded-xl p-4">
+                                 <span className="font-bold text-xs text-muted mb-2 block">Option {['A','B','C','D'][parseInt(idx)]} incorrect because:</span>
+                                 <p className="text-sm text-ink leading-relaxed font-medium">{reason as string}</p>
+                               </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {q.memory && (
+                          <div className="bg-accent/5 border border-accent/20 flex items-start gap-3 p-5 rounded-xl">
+                            <div className="bg-accent/10 p-2 rounded-lg shrink-0 mt-0.5">
+                              <BrainCircuit className="w-4 h-4 text-accent" />
                             </div>
-                          ))}
-                        </div>
-
-                        {/* Memory Tip */}
-                        <div className="bg-gold/10 border-2 border-gold/20 rounded-xl p-4 flex gap-4">
-                          <div className="bg-gold p-2 rounded-lg h-fit">
-                            <BrainCircuit className="w-5 h-5 text-white" />
+                            <div>
+                              <span className="font-bold text-accent text-xs block mb-1">MEMORY TIP</span>
+                              <p className="text-sm text-ink font-medium">{q.memory}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-gold uppercase tracking-wider mb-1">Memory Tip</h4>
-                            <p className="text-sm text-gold/90 font-medium italic leading-snug">
-                              {q.memory}
-                            </p>
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
-
-          {filteredQuestions.length === 0 && (
-            <div className="text-center py-20 bg-paper rounded-3xl border-2 border-dashed border-border">
-              <Search className="w-12 h-12 text-muted mx-auto mb-4 opacity-20" />
-              <h3 className="text-lg font-display font-bold text-muted">No questions found</h3>
-              <p className="text-sm text-muted/60">Try adjusting your filters or search query.</p>
-            </div>
-          )}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-paper border-t border-border py-12 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-sm text-muted mb-4">
-            <strong>Karen Hospital Medical Training College</strong><br />
-            NCK KRN Diploma · Year 1 · {activePaper.title}
-          </p>
-          <div className="flex items-center justify-center gap-4 text-xs font-mono text-muted/60">
-            <span>{currentQuestions.length} Questions</span>
-            <span>•</span>
-            <span>Interactive Study Mode</span>
-            <span>•</span>
-            <span>By Mulwa</span>
-          </div>
-        </div>
-      </footer>
-
-      {/* Reset Dialog */}
+      {/* Admin Paper Manager */}
       <AnimatePresence>
-        {showResetDialog && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
+        {role === 'admin' && showPaperManager && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-paper rounded-2xl shadow-xl max-w-sm w-full overflow-hidden border border-border"
+              className="bg-cream rounded-2xl shadow-xl max-w-lg w-full flex flex-col max-h-[85vh] border border-border overflow-hidden"
             >
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
+              <div className="bg-paper p-6 border-b-2 border-border flex items-center justify-between z-10">
+                <div>
+                  <h3 className="font-display font-extrabold text-2xl text-ink tracking-tight">
+                    Library
+                  </h3>
+                  <p className="text-sm font-semibold text-muted mt-1">Manage your study sets</p>
                 </div>
-                <h3 className="text-xl font-display font-bold text-ink mb-2">Reset Progress?</h3>
-                <p className="text-sm text-muted">
-                  This will clear all your answered questions and reset your score to 0%. This action cannot be undone.
-                </p>
+                <button onClick={() => setShowPaperManager(false)} className="p-2 -mr-2 text-muted hover:text-ink hover:bg-cream rounded-full transition-colors">
+                  <XCircle className="w-6 h-6" />
+                </button>
               </div>
-              <div className="bg-cream px-6 py-4 flex items-center justify-end gap-3 border-t border-border">
-                <button
-                  onClick={() => setShowResetDialog(false)}
-                  className="px-4 py-2 text-sm font-semibold text-muted hover:text-ink transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmReset}
-                  className="px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                >
-                  Yes, Reset
-                </button>
+
+              <div className="p-5 flex-1 overflow-y-auto space-y-4 bg-cream">
+                {papers.map(p => {
+                  const isActive = activePaperId === p.id;
+                  return (
+                    <div key={p.id} className={cn("bg-paper rounded-2xl p-5 border-2 transition-all relative overflow-hidden", isActive ? "border-accent shadow-sm" : "border-border hover:border-accent/40")}>
+                      {isActive && <div className="absolute top-0 left-0 w-1.5 h-full bg-accent"></div>}
+                      <div className="flex items-start justify-between mb-3">
+                        <div 
+                          className="cursor-pointer min-w-0 pr-4 flex-1 select-none"
+                          onClick={() => { setActivePaperId(p.id); setShowPaperManager(false); }}
+                        >
+                          <h4 className="font-bold text-ink truncate text-lg tracking-tight hover:text-accent transition-colors">{p.title}</h4>
+                          <span className="text-sm text-muted font-bold tracking-tight inline-flex items-center mt-1"><BookOpen className="w-3.5 h-3.5 mr-1.5"/>{p.questions.length} terms</span>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0 bg-cream p-1 rounded-xl border border-border">
+                          <button onClick={() => toggleVisibility(p.id, p.isHidden || false)} className="p-2 rounded-lg hover:bg-paper text-muted transition-colors" title="Toggle visibility for guests">
+                            {p.isHidden ? <EyeOff className="w-4 h-4 text-red-500" /> : <Eye className="w-4 h-4 text-green-500" />}
+                          </button>
+                          <button onClick={() => renamePaper(p.id, p.title)} className="p-2 rounded-lg hover:bg-paper text-muted transition-colors" title="Rename">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          {p.id !== 'default-part-1' && (
+                            <button onClick={() => deletePaper(p.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="Delete">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {p.isHidden && (
+                        <div className="bg-red-50 text-red-700 text-xs font-bold px-2 py-1 rounded inline-block border border-red-200 uppercase tracking-widest mt-2">
+                          Hidden from Guests
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="bg-paper border-t-2 border-border p-6 flex flex-col items-center">
+                <label className="flex items-center justify-center w-full py-4 bg-accent text-white rounded-xl cursor-pointer hover:bg-indigo-600 active:scale-[0.98] transition-all shadow-sm font-bold text-base">
+                  <Upload className="w-5 h-5 mr-2" />
+                  Create a new study set
+                  <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
+                </label>
+                <p className="text-[11px] font-bold text-muted tracking-widest uppercase mt-4">Upload from JSON format</p>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-      {/* Paper Manager Dialog */}
+
+      {/* Reset Dialog */}
       <AnimatePresence>
-        {showPaperManager && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
+        {showResetDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-paper rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-border flex flex-col max-h-[85vh]"
+              className="bg-paper rounded-2xl shadow-lg max-w-sm w-full p-6 border border-border"
             >
-              <div className="p-4 border-b border-border flex justify-between items-center bg-cream">
-                <h3 className="font-display font-bold text-ink flex items-center gap-2">
-                  <Library className="w-5 h-5 text-accent" />
-                  Paper Library
-                </h3>
-                <button onClick={() => setShowPaperManager(false)} className="text-muted hover:text-ink transition-colors">
-                  <XCircle className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="p-4 overflow-y-auto flex-1 space-y-3 bg-paper">
-                {papers.map(p => {
-                  const isActive = activePaperId === p.id;
-                  return (
-                    <div 
-                      key={p.id} 
-                      className={cn(
-                        "p-3 rounded-xl border flex justify-between items-center transition-colors",
-                        isActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
-                      )}
-                    >
-                      <div 
-                        className="cursor-pointer flex-1 min-w-0 pr-4" 
-                        onClick={() => { setActivePaperId(p.id); setShowPaperManager(false); }}
-                      >
-                        <div className="font-medium text-ink truncate">{p.title}</div>
-                        <div className="text-xs text-muted font-mono mt-0.5">{p.questions.length} Questions</div>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button 
-                          onClick={() => renamePaper(p.id)} 
-                          className="p-1.5 text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-colors"
-                          title="Rename"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        {p.id !== 'default-part-1' && (
-                          <button 
-                            onClick={() => deletePaper(p.id)} 
-                            className="p-1.5 text-muted hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="p-4 border-t border-border bg-cream">
-                {uploadStatus === 'idle' ? (
-                  <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-accent/40 rounded-xl cursor-pointer hover:bg-accent/5 hover:border-accent transition-colors group">
-                    <div className="bg-accent/10 p-2 rounded-full mb-2 group-hover:scale-110 transition-transform">
-                      <Upload className="w-5 h-5 text-accent" />
-                    </div>
-                    <span className="text-sm font-medium text-ink">Upload JSON Paper</span>
-                    <span className="text-xs text-muted mt-1">Click to browse files</span>
-                    <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
-                  </label>
-                ) : (
-                  <div className="w-full h-28 border-2 border-border rounded-xl flex flex-col items-center justify-center p-4 bg-paper">
-                    {uploadStatus === 'validating' && (
-                      <>
-                        <div className="w-full bg-border rounded-full h-2 mb-3 overflow-hidden">
-                          <motion.div 
-                            className="bg-accent h-2 rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${uploadProgress}%` }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-ink animate-pulse">{uploadMessage}</span>
-                      </>
-                    )}
-                    {uploadStatus === 'success' && (
-                      <>
-                        <div className="bg-green-100 p-2 rounded-full mb-2">
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        </div>
-                        <span className="text-sm font-medium text-green-700">{uploadMessage}</span>
-                      </>
-                    )}
-                    {uploadStatus === 'error' && (
-                      <>
-                        <div className="bg-red-100 p-2 rounded-full mb-2">
-                          <XCircle className="w-5 h-5 text-red-600" />
-                        </div>
-                        <span className="text-xs font-medium text-red-600 text-center">{uploadMessage}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+               <h3 className="text-xl font-bold text-ink mb-2">Reset Progress?</h3>
+               <p className="text-sm text-muted mb-6">This clears all answers for the current paper. It cannot be undone.</p>
+               <div className="flex gap-3 justify-end">
+                 <button onClick={() => setShowResetDialog(false)} className="px-4 py-2 font-bold text-muted hover:bg-cream rounded-lg transition-colors">Cancel</button>
+                 <button onClick={confirmReset} className="px-4 py-2 font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm">Yes, Reset</button>
+               </div>
             </motion.div>
           </div>
         )}

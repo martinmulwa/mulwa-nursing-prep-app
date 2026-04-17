@@ -1,13 +1,14 @@
-import { Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
+const sans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
 });
 
-const playfair = Playfair_Display({
+const display = Plus_Jakarta_Sans({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-display',
 });
 
@@ -17,7 +18,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: 'Mulwa Nursing Prep — Part 1 Exam',
+  title: 'Mulwa Prep',
   description: 'Interactive study guide for the Karen Hospital Medical Training College Promotional Exam.',
 };
 
@@ -27,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${mono.variable}`}>
-      <body className="antialiased bg-[#faf8f3] text-[#0f1117]" suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+      <body className="antialiased bg-cream text-ink font-sans tracking-tight" suppressHydrationWarning>
         {children}
       </body>
     </html>
